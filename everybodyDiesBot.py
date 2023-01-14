@@ -1,4 +1,5 @@
 import logging
+import pyrebase
 from main import *
 
 from telegram import __version__ as TG_VER
@@ -31,6 +32,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 NAME, PHOTO, RELIGION, STYLE, CASKET, MENU, SONG, SPEAKERS, PARTING_WORDS, REPLAN, ARRANGEMENT = range(11)
+
+## to upload photos onto firestore db
+config = {
+    "apiKey": "AIzaSyCYUi7-aoID4y4tc1c3kpDZ8vgUq5__abY",
+    "authDomain": "jodofiofe.firebaseapp.com",
+    "databaseURL": "https://jodofiofe-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "projectId": "jodofiofe",
+    "storageBucket": "jodofiofe.appspot.com",
+    "messagingSenderId": "81826383063",
+    "appId": "1:81826383063:web:d4ed506b8b30da70d69c92",
+    "serviceAccountKey": "serviceAccountKey.json"
+}
+
+firebase = pyrebase.initialize_app(config)
+storage = firebase.storage()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Asks for user's name."""
@@ -65,6 +81,8 @@ async def replan(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     username = user.username
     if update.message.text == "Yes":
         db.collection('Dead').document(username).delete()
+        chat_id = update.message.chat_id
+        job_removed = remove_job_if_exists(str(chat_id), context)
         await update.message.reply_text(
             "Your previous plan has been deleted! /start again to plan your funeral again.",
             reply_markup=ReplyKeyboardRemove())
@@ -94,11 +112,11 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     photo_file = await update.message.photo[-1].get_file()
     await photo_file.download_to_drive("user_photo.jpg")
     logger.info("Photo of %s: %s", user.first_name, "user_photo.jpg")
+    
+    ## enter photo into db
+    storage.child(username).put("user_photo.jpg")
 
-    ### HOW TO ENTER PHOTO INTO DB ???????????????????????????????????????????
-    db.collection('Dead').document(username).update({'photo': "user_photo.jpg"}) ## enter photo into db
-
-    reply_keyboard = [["Buddhist", "Christian", "Roman Catholic", "Taoist", "Others"]]
+    reply_keyboard = [["Buddhist", "Christian"], ["Roman Catholic", "Taoist"], ["Others"]]
     await update.message.reply_text(
         "Next, what is your religion?",
         reply_markup=ReplyKeyboardMarkup(
@@ -117,7 +135,7 @@ async def religion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     db.collection('Dead').document(username).update({'religion': religion}) ## enter religion into db
 
 
-    reply_keyboard = [["Default", "Dark Mode", "Party", "Tropical"]]
+    reply_keyboard = [["Default", "Dark Mode"], ["Party", "Tropical"]]
     await update.message.reply_text(
         "I see! What style would you like your funeral to be?",
         reply_markup=ReplyKeyboardMarkup(
@@ -134,7 +152,7 @@ async def style(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     style = update.message.text # style entered by telegram user
     db.collection('Dead').document(username).update({'style': style}) ## enter style into db
 
-    reply_keyboard = [["Yellow", "Red", "White", "Colorful", "Pink", "Blue"]]
+    reply_keyboard = [["Yellow", "Red"], ["White", "Colorful"], ["Pink", "Blue"]]
     await update.message.reply_text(
         "Great taste! What kind of flower arrangement will you like?",
         reply_markup=ReplyKeyboardMarkup(
@@ -151,14 +169,18 @@ async def arrangement(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     arrgmt = update.message.text # flower arrangement entered by telegram user
     db.collection('Dead').document(username).update({'arrangement': arrgmt}) ## enter arrangement into db
 
-    reply_keyboard = [["One", "Two", "Three", "Four"]]
+    reply_keyboard = [["One", "Two"], ["Three", "Four"]]
     await update.message.reply_text(
         "Great taste! Which casket do you like?\n\n"
-        "Check out caskets here:",
+        "Check out our caskets here (do give us some time to load):",
         reply_markup=ReplyKeyboardMarkup(
             reply_keyboard, one_time_keyboard=True, input_field_placeholder="Casket Number?"
         ),
     )
+    await update.message.reply_photo("caskets_reg/one.png", caption = "One")
+    await update.message.reply_photo("caskets_reg/two.png", caption = "Two")
+    await update.message.reply_photo("caskets_reg/three.png", caption = "Three")
+    await update.message.reply_photo("caskets_reg/four.png", caption = "Four")
     return CASKET
 
 async def casket(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -170,7 +192,7 @@ async def casket(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     casket = update.message.text # casket entered by telegram user
     db.collection('Dead').document(username).update({'casket': casket}) ## enter casket into db
 
-    reply_keyboard = [["Western", "Chinese", "Vegetarian", "Halal"]]
+    reply_keyboard = [["Western", "Chinese"], ["Vegetarian", "Halal"]]
     await update.message.reply_text(
         "That's a very nice casket! Next, what kind of menu do you want to offer to attendees?",
         reply_markup=ReplyKeyboardMarkup(
@@ -189,7 +211,7 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     db.collection('Dead').document(username).update({'menu': menu}) ## enter menu into db
 
     await update.message.reply_text(
-        "Now, what song do you want to be played at your funeral?"
+        "Now, what song do you want to be played at your funeral? "
         "Reply with a Spotify link, or /skip to skip",
         reply_markup=ReplyKeyboardRemove(),
     )
@@ -248,9 +270,47 @@ async def parting_words(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
     partingWords = update.message.text # parting words entered by telegram user
     db.collection('Dead').document(username).update({'partingWords': partingWords}) ## enter parting words into db
-    await update.message.reply_text("Thank you! Here's the link to your funeral. We will send this out to your friends when you die.")
+    
+    #add delayed message
+    chat_id = update.effective_message.chat_id
+    #in case job exists
+    job_removed = remove_job_if_exists(str(chat_id), context)
+    #set time in seconds
+    due = 60
+    context.job_queue.run_once(send, due, chat_id=chat_id, name=str(chat_id), data = f"link/{username}")
+
+    await update.message.reply_text("Thank you! Here's the link to your funeral. We will send this out to all your contacts after 7 days. /refresh regularly to delay your death!")
+    await update.message.reply_text(f"link/{username}")
 
     return ConversationHandler.END
+
+def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """Remove job with given name. Returns whether job was removed."""
+    current_jobs = context.job_queue.get_jobs_by_name(name)
+    if not current_jobs:
+        return False
+    for job in current_jobs:
+        job.schedule_removal()
+    return True
+
+async def send(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """send link"""
+    job = context.job
+    await context.bot.send_message(job.chat_id, text=f"We would like to solemnly invite you to your friend's funeral: {job.data}")
+
+async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """reset time when user presses reset"""
+    user = update.message.from_user
+    username = user.username
+    chat_id = update.message.chat_id
+    job_removed = remove_job_if_exists(str(chat_id), context)
+    #set time in seconds
+    due = 60
+    context.job_queue.run_once(send, due, chat_id=chat_id, name=str(chat_id), data = f"link/{username}")
+    await update.message.reply_text("You are still alive! We have resetted your timer back to 7 days.")
+
+    return ConversationHandler.END
+
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
@@ -270,11 +330,13 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     return ConversationHandler.END
 
-
 def main() -> None:
     """Run the bot."""
     # Create the Application and pass it your bot's token.
     application = Application.builder().token("5703636210:AAERRQrEGuweROVViAqHSqi7uL3E6oFBTeY").build()
+
+    #create handlers for reset
+    application.add_handler(CommandHandler("refresh", reset))
 
     # Add conversation handler with the states 
     conv_handler = ConversationHandler(
