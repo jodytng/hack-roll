@@ -1,4 +1,5 @@
 import logging
+import pyrebase
 from main import *
 
 from telegram import __version__ as TG_VER
@@ -31,6 +32,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 NAME, PHOTO, RELIGION, STYLE, CASKET, MENU, SONG, SPEAKERS, PARTING_WORDS= range(9)
+
+## to upload photos onto firestore db
+config = {
+    "apiKey": "AIzaSyCYUi7-aoID4y4tc1c3kpDZ8vgUq5__abY",
+    "authDomain": "jodofiofe.firebaseapp.com",
+    "databaseURL": "https://jodofiofe-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "projectId": "jodofiofe",
+    "storageBucket": "jodofiofe.appspot.com",
+    "messagingSenderId": "81826383063",
+    "appId": "1:81826383063:web:d4ed506b8b30da70d69c92",
+    "serviceAccountKey": "serviceAccountKey.json"
+}
+
+firebase = pyrebase.initialize_app(config)
+storage = firebase.storage()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Asks for user's name."""
@@ -75,8 +91,9 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await photo_file.download_to_drive("user_photo.jpg")
     logger.info("Photo of %s: %s", user.first_name, "user_photo.jpg")
 
-    ### HOW TO ENTER PHOTO INTO DB ???????????????????????????????????????????
-    db.collection('Dead').document(username).update({'photo': "user_photo.jpg"}) ## enter photo into db
+    ## is it possible to save a reference of the pic in Storage in the Firestore database?
+    #db.collection('Dead').document(username).update({'photo': "user_photo.jpg"}) ## enter photo into db
+    storage.child(username).put("user_photo.jpg")
 
     reply_keyboard = [["Buddhist", "Christian", "Roman Catholic", "Taoist", "Others"]]
     await update.message.reply_text(
