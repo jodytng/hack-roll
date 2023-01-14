@@ -46,9 +46,18 @@ class MyHomePage extends StatelessWidget {
               Text('everybody dies',
                   style: Theme.of(context).textTheme.titleLarge),
               Text('in loving memory of XXX',
-                  style: Theme.of(context).textTheme.labelMedium),
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium!
+                      .copyWith(color: Theme.of(context).secondaryHeaderColor)),
             ]))),
-        Image.asset('images/backgrounds/Default1.png')
+        Expanded(
+            child: Container(
+                decoration: const BoxDecoration(
+          image: DecorationImage(
+              image: AssetImage('images/backgrounds/Default.png'),
+              fit: BoxFit.cover),
+        ))),
       ]),
     );
   }
