@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
 # hack-roll
-
 
 A funeral planning web-app for Hack & Roll 2023!
 
@@ -10,5 +7,3 @@ pip install python-telegram-bot
 pip install --upgrade firebase-admin
 pip install pyrebase4
 pip install python-telegram-bot[job-queue] --pre
-
->>>>>>> a29a6948300810b157d2f17ab62ece149e5fcf45
