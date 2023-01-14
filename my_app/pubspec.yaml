@@ -66,6 +66,9 @@ flutter:
  
   assets:
     - images/backgrounds/
+    - images/caskets/
+    - images/floralarrangements/
+    - images/
 
   fonts:
     - family: Vollkorn
