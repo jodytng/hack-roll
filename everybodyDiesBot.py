@@ -31,7 +31,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-NAME, PHOTO, RELIGION, STYLE, CASKET, MENU, SONG, SPEAKERS, PARTING_WORDS, REPLAN, ARRANGEMENT = range(11)
+NAME, PHOTO, RELIGION, STYLE, CASKET, MENU, SONG, SPEAKERS, PARTING_WORDS, REPLAN, ARRANGEMENT, ADD_FRIEND = range(12)
+
+#global dictionary to store users
+users = {}
 
 ## to upload photos onto firestore db
 config = {
@@ -50,12 +53,15 @@ storage = firebase.storage()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Asks for user's name."""
-
     ## MAKE SURE THE USER IS NOT PREEXISTING IN THE DATABASE
     user = update.message.from_user
     username = user.username # unique username of telegram user
     doc_ref = db.collection('Dead').document(username)
     doc = doc_ref.get()
+
+    #store user in global space so that we can send messages later
+    users[username] = user.id
+
     if not doc.exists:
         await update.message.reply_text(
             "Hi! My name is everybodyDiesBot. I will help you plan your virtual funeral. "
@@ -263,40 +269,66 @@ async def speakers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return PARTING_WORDS
 
 async def parting_words(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Stores string parting words and ends conversation"""
+    """Stores string parting words and asks for friends"""
     user = update.message.from_user
     username = user.username # unique username of telegram user
     logger.info("Parting words for %s: %s", user.first_name, update.message.text)
 
     partingWords = update.message.text # parting words entered by telegram user
     db.collection('Dead').document(username).update({'partingWords': partingWords}) ## enter parting words into db
-    
+
+    await update.message.reply_text(
+        "Who do you want to send the invitation to? (Enter the telehandles without '@', separated with empty space)\n\n"
+        "Take note that invitees should be users of this bot"
+    )
+    return ADD_FRIEND
+
+async def add_friend(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Add friend and end convo"""
+    handles = update.message.text
+    friends = handles.split(" ")
+    user = update.message.from_user
+    username = user.username
+
     #add delayed message
     chat_id = update.effective_message.chat_id
     #in case job exists
     job_removed = remove_job_if_exists(str(chat_id), context)
     #set time in seconds
-    due = 60
-    context.job_queue.run_once(send, due, chat_id=chat_id, name=str(chat_id), data = f"link/{username}")
+    due = 30
+    context.job_queue.run_once(send, due, chat_id=chat_id, name=str(chat_id), data = [friends, f"https://jodytng.github.io/{username}/"])
 
     await update.message.reply_text("Thank you! Here's the link to your funeral. We will send this out to all your contacts after 7 days. /refresh regularly to delay your death!")
-    await update.message.reply_text(f"link/{username}")
+    await update.message.reply_text(f"https://jodytng.github.io/{username}/")
 
     return ConversationHandler.END
 
-def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> bool:
+def remove_job_if_exists(name: str, context: ContextTypes.DEFAULT_TYPE) -> list:
     """Remove job with given name. Returns whether job was removed."""
     current_jobs = context.job_queue.get_jobs_by_name(name)
     if not current_jobs:
-        return False
+        return []
     for job in current_jobs:
         job.schedule_removal()
-    return True
+    return job.data
 
 async def send(context: ContextTypes.DEFAULT_TYPE) -> None:
     """send link"""
     job = context.job
-    await context.bot.send_message(job.chat_id, text=f"We would like to solemnly invite you to your friend's funeral: {job.data}")
+    friends = job.data[0]
+    link = job.data[1]
+    count = 0
+    if(friends):
+        for friend in friends:
+            if friend in users.keys():
+                count += 1
+                await context.bot.send_message(users[friend], text=f"We would like to solemnly invite you to your friend's funeral: {link}")
+    if(count == 0):
+        await context.bot.send_message(job.chat_id, text="You have no friends using the bot :(")
+    else:
+        await context.bot.send_message(job.chat_id, text="We have sent out the invitations to your funeral. Rest In Peace.")
+        await context.bot.send_sticker(job.chat_id, sticker="CAACAgIAAxkBAAGZkkVjwwNGyPqGy5r2HPIN9SqYm_tEqAAC4QADUomRIznBNrZHX5TMLQQ")
+
 
 async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """reset time when user presses reset"""
@@ -305,8 +337,8 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.message.chat_id
     job_removed = remove_job_if_exists(str(chat_id), context)
     #set time in seconds
-    due = 60
-    context.job_queue.run_once(send, due, chat_id=chat_id, name=str(chat_id), data = f"link/{username}")
+    due = 30
+    context.job_queue.run_once(send, due, chat_id=chat_id, name=str(chat_id), data = job_removed)
     await update.message.reply_text("You are still alive! We have resetted your timer back to 7 days.")
 
     return ConversationHandler.END
@@ -353,6 +385,7 @@ def main() -> None:
             PARTING_WORDS: [MessageHandler(filters.TEXT & ~filters.COMMAND, parting_words)],
             REPLAN: [MessageHandler(filters.Regex("Yes|No"), replan)],
             ARRANGEMENT: [MessageHandler(filters.Regex("Yellow|Red|White|Colorful|Pink|Blue"), arrangement)],
+            ADD_FRIEND: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_friend)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
