@@ -157,7 +157,7 @@ class ShowMenu extends StatelessWidget {
         decoration: const BoxDecoration(
             image: DecorationImage(
                 image: AssetImage('images/menus/Chinese.png'),
-                fit: BoxFit.cover)),
+                fit: BoxFit.scaleDown)),
       ),
     );
   }
