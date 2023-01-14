@@ -69,6 +69,7 @@ flutter:
     - images/caskets/
     - images/floralarrangements/
     - images/
+    - images/menus/
 
   fonts:
     - family: Vollkorn
