@@ -12,7 +12,11 @@ class MyApp extends StatelessWidget {
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
           backgroundColor: const Color(0xEAE0D500),
-          title: const Text('Everybody dies'),
+          title: const Text('Everybody dies',
+              style: TextStyle(
+                  fontFamily: 'Vollkorn',
+                  fontSize: 55,
+                  fontStyle: FontStyle.italic)),
         ),
         body: Center(
           child: Column(
