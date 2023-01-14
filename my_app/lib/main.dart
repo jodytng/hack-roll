@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hovering/hovering.dart';
+import 'package:my_app/animated_cursor.dart';
 
 void main() => runApp(const MyApp());
 
@@ -22,9 +24,10 @@ class MyApp extends StatelessWidget {
                   TextStyle(fontSize: 16.0, fontWeight: FontWeight.w700)),
         ),
         debugShowCheckedModeBanner: false,
-        home: const MyHomePage(
+        home: AnimatedCursor(
+            child: MyHomePage(
           title: 'Everybody Dies',
-        ));
+        )));
   }
 }
 
@@ -67,9 +70,18 @@ class MyHomePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Image.asset(
-                  scale: height * 0.0038,
-                  'images/placeholder.png',
+                HoverWidget(
+                  hoverChild: Image.asset(
+                    scale: height * 0.0038,
+                    'images/placeholder.png',
+                  ),
+                  onHover: (event) {
+                    showDialog(context: context, builder: (_) => ShowPhoto());
+                  },
+                  child: Image.asset(
+                    scale: height * 0.0038,
+                    'images/placeholder.png',
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Image.asset(
@@ -87,10 +99,11 @@ class MyHomePage extends StatelessWidget {
               height: 500,
             ),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Image.asset(
+              AnimatedCursorMouseRegion(
+                  child: Image.asset(
                 scale: width * 0.0016,
                 'images/floralarrangements/Colorful-L.png',
-              ),
+              )),
               const SizedBox(width: 80),
               ElevatedButton(
                 onPressed: () {},
@@ -154,10 +167,32 @@ class ShowMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       child: Container(
+        height: 400,
+        width: 200,
         decoration: const BoxDecoration(
             image: DecorationImage(
+                scale: 0.001,
                 image: AssetImage('images/menus/Chinese.png'),
-                fit: BoxFit.scaleDown)),
+                fit: BoxFit.fill)),
+      ),
+    );
+  }
+}
+
+class ShowPhoto extends StatelessWidget {
+  const ShowPhoto({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      child: Container(
+        height: 300,
+        width: 100,
+        decoration: const BoxDecoration(
+            image: DecorationImage(
+                scale: 0.02,
+                image: AssetImage('images/placeholder.png'),
+                fit: BoxFit.cover)),
       ),
     );
   }
