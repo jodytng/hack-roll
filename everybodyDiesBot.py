@@ -1,4 +1,5 @@
 import logging
+from main import *
 
 from telegram import __version__ as TG_VER
 
@@ -29,22 +30,57 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-NAME, PHOTO, RELIGION, STYLE, CASKET, MENU, SONG, SPEAKERS, PARTING_WORDS= range(9)
+NAME, PHOTO, RELIGION, STYLE, CASKET, MENU, SONG, SPEAKERS, PARTING_WORDS, REPLAN, ARRANGEMENT = range(11)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Asks for user's name."""
-    await update.message.reply_text(
-        "Hi! My name is everybodyDiesBot. I will help you plan your virtual funeral. "
-        "Send /cancel to stop talking to me.\n\n"
-        "What is your full name?"
-    )
 
-    return NAME
+    ## MAKE SURE THE USER IS NOT PREEXISTING IN THE DATABASE
+    user = update.message.from_user
+    username = user.username # unique username of telegram user
+    doc_ref = db.collection('Dead').document(username)
+    doc = doc_ref.get()
+    if not doc.exists:
+        await update.message.reply_text(
+            "Hi! My name is everybodyDiesBot. I will help you plan your virtual funeral. "
+            "Send /cancel to stop talking to me.\n\n"
+            "What is your full name?"
+        )
+
+        return NAME
+    else:
+        reply_keyboard = [["Yes", "No"]]
+        await update.message.reply_text(
+            "It seems that you have already planned your funeral. Do you want to re-plan your funeral?",
+            reply_markup=ReplyKeyboardMarkup(
+                reply_keyboard, one_time_keyboard=True, input_field_placeholder="Re-plan?"
+                ),
+        )
+
+        return REPLAN
+
+async def replan(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Deletes data entry if user wants to replan, else end conversation"""
+    user = update.message.from_user
+    username = user.username
+    if update.message.text == "Yes":
+        db.collection('Dead').document(username).delete()
+        await update.message.reply_text(
+            "Your previous plan has been deleted! /start again to plan your funeral again.",
+            reply_markup=ReplyKeyboardRemove())
+    else:
+        await update.message.reply_text("Sure! Your previous plan will be kept.")
+        
+    return ConversationHandler.END
 
 async def name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores user's name and asks for photo"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("Name of %s: %s", user.first_name, update.message.text)
+    fullname = update.message.text # full name entered by telegram user
+
+    db.collection('Dead').document(username).set({'name': fullname}) ## enter name into db
     await update.message.reply_text(
         "Great! Now, send me your photo please."
     )
@@ -54,9 +90,13 @@ async def name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores the photo of user and asks for religion"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     photo_file = await update.message.photo[-1].get_file()
     await photo_file.download_to_drive("user_photo.jpg")
     logger.info("Photo of %s: %s", user.first_name, "user_photo.jpg")
+
+    ### HOW TO ENTER PHOTO INTO DB ???????????????????????????????????????????
+    db.collection('Dead').document(username).update({'photo': "user_photo.jpg"}) ## enter photo into db
 
     reply_keyboard = [["Buddhist", "Christian", "Roman Catholic", "Taoist", "Others"]]
     await update.message.reply_text(
@@ -71,7 +111,11 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def religion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores religion of user and asks for style"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("Religion of %s: %s", user.first_name, update.message.text)
+    religion = update.message.text # religion entered by telegram user
+    db.collection('Dead').document(username).update({'religion': religion}) ## enter religion into db
+
 
     reply_keyboard = [["Default", "Dark Mode", "Party", "Tropical"]]
     await update.message.reply_text(
@@ -83,9 +127,29 @@ async def religion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return STYLE
 
 async def style(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Stores funeral style and asks for casket"""
+    """Stores funeral style and asks for flower arrangement"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("Funeral Style of %s: %s", user.first_name, update.message.text)
+    style = update.message.text # style entered by telegram user
+    db.collection('Dead').document(username).update({'style': style}) ## enter style into db
+
+    reply_keyboard = [["Yellow", "Red", "White", "Colorful", "Pink", "Blue"]]
+    await update.message.reply_text(
+        "Great taste! What kind of flower arrangement will you like?",
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, input_field_placeholder="Flower Arrangement?"
+        ),
+    )
+    return ARRANGEMENT
+
+async def arrangement(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Stores flower arrangement and asks for casket"""
+    user = update.message.from_user
+    username = user.username # unique username of telegram user
+    logger.info("Flower Arrangement of %s: %s", user.first_name, update.message.text)
+    arrgmt = update.message.text # flower arrangement entered by telegram user
+    db.collection('Dead').document(username).update({'arrangement': arrgmt}) ## enter arrangement into db
 
     reply_keyboard = [["One", "Two", "Three", "Four"]]
     await update.message.reply_text(
@@ -100,7 +164,11 @@ async def style(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def casket(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores casket type and asks for menu"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("Casket of %s: %s", user.first_name, update.message.text)
+
+    casket = update.message.text # casket entered by telegram user
+    db.collection('Dead').document(username).update({'casket': casket}) ## enter casket into db
 
     reply_keyboard = [["Western", "Chinese", "Vegetarian", "Halal"]]
     await update.message.reply_text(
@@ -114,7 +182,11 @@ async def casket(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores user's menu choice and asks for song choice"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("Menu choice of %s: %s", user.first_name, update.message.text)
+
+    menu = update.message.text # menu entered by telegram user
+    db.collection('Dead').document(username).update({'menu': menu}) ## enter menu into db
 
     await update.message.reply_text(
         "Now, what song do you want to be played at your funeral?"
@@ -127,7 +199,12 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def song(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores user's song choice and asks for Eulogy speakers"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("Song choice of %s: %s", user.first_name, update.message.text)
+
+    song = update.message.text # song entered by telegram user
+    db.collection('Dead').document(username).update({'song': song}) ## enter song into db
+
     await update.message.reply_text(
         "Great song! Next, who do you want as your eulogy speakers?",
     )
@@ -137,7 +214,11 @@ async def song(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def skip_song(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Skips song choice and asks for Eulogy speakers"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("User %s did not send a song choice.", user.first_name)
+
+    db.collection('Dead').document(username).update({'song': None}) ## enter empty song into db
+
     await update.message.reply_text(
         "Next, who do you want as your eulogy speakers?"
     )
@@ -147,7 +228,12 @@ async def skip_song(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def speakers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores string of eulogy speakers and asks for final parting words"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("Eulogy speakers for %s: %s", user.first_name, update.message.text)
+
+    speakers = update.message.text # speakers entered by telegram user
+    db.collection('Dead').document(username).update({'speakers': speakers}) ## enter speakers into db
+
     await update.message.reply_text(
         "Lastly, what are your parting words?"
     )
@@ -157,7 +243,11 @@ async def speakers(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def parting_words(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Stores string parting words and ends conversation"""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("Parting words for %s: %s", user.first_name, update.message.text)
+
+    partingWords = update.message.text # parting words entered by telegram user
+    db.collection('Dead').document(username).update({'partingWords': partingWords}) ## enter parting words into db
     await update.message.reply_text("Thank you! Here's the link to your funeral. We will send this out to your friends when you die.")
 
     return ConversationHandler.END
@@ -165,7 +255,15 @@ async def parting_words(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
+    username = user.username # unique username of telegram user
     logger.info("User %s canceled the conversation.", user.first_name)
+
+    ## CHECK IF USER EXISTS IN DATABASE WHEN CANCELLING
+    doc_ref = db.collection('Dead').document(username)
+    doc = doc_ref.get()
+    if doc.exists:
+        db.collection('Dead').document(username).delete() ## delete user entry from db
+
     await update.message.reply_text(
         "Bye! I hope you die one day", reply_markup=ReplyKeyboardRemove()
     )
@@ -191,6 +289,8 @@ def main() -> None:
             SONG: [MessageHandler(filters.TEXT & ~filters.COMMAND, song), CommandHandler("skip", skip_song)],
             SPEAKERS: [MessageHandler(filters.TEXT & ~filters.COMMAND, speakers)],
             PARTING_WORDS: [MessageHandler(filters.TEXT & ~filters.COMMAND, parting_words)],
+            REPLAN: [MessageHandler(filters.Regex("Yes|No"), replan)],
+            ARRANGEMENT: [MessageHandler(filters.Regex("Yellow|Red|White|Colorful|Pink|Blue"), arrangement)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
