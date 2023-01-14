@@ -7,25 +7,49 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        resizeToAvoidBottomInset: false,
-        appBar: AppBar(
-          backgroundColor: const Color(0xEAE0D500),
-          title: const Text('Everybody dies',
-              style: TextStyle(
-                  fontFamily: 'Vollkorn',
-                  fontSize: 55,
-                  fontStyle: FontStyle.italic)),
+        title: 'Everybody Dies',
+        theme: ThemeData(
+          backgroundColor: const Color.fromARGB(255, 234, 224, 213),
+          primaryColor: const Color.fromARGB(255, 10, 9, 8),
+          secondaryHeaderColor: const Color.fromARGB(255, 94, 80, 63),
+          fontFamily: 'Vollkorn',
+          textTheme: const TextTheme(
+              titleLarge: TextStyle(
+                  fontSize: 32.0,
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.bold),
+              labelMedium:
+                  TextStyle(fontSize: 16.0, fontWeight: FontWeight.w700)),
         ),
-        body: Center(
-          child: Column(
-            children: <Widget>[
-              Image.asset('images/Artwork1.png'),
-            ],
-          ),
-        ),
-      ),
+        debugShowCheckedModeBanner: false,
+        home: const MyHomePage(
+          title: 'Everybody Dies',
+        ));
+  }
+}
+
+class MyHomePage extends StatelessWidget {
+  final String title;
+
+  const MyHomePage({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      body: Column(children: <Widget>[
+        Container(
+            color: Theme.of(context).backgroundColor,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Center(
+                child: Column(children: [
+              Text('everybody dies',
+                  style: Theme.of(context).textTheme.titleLarge),
+              Text('in loving memory of XXX',
+                  style: Theme.of(context).textTheme.labelMedium),
+            ]))),
+        Image.asset('images/backgrounds/Default1.png')
+      ]),
     );
   }
 }
