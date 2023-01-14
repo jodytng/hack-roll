@@ -146,11 +146,7 @@
       "languageVersion": "2.18"
     }
   ],
-<<<<<<< HEAD
-  "generated": "2023-01-14T20:04:10.169097Z",
-=======
-  "generated": "2023-01-14T19:27:22.790821Z",
->>>>>>> main
+  "generated": "2023-01-14T20:14:03.187357Z",
   "generator": "pub",
   "generatorVersion": "2.18.6"
 }
