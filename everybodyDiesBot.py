@@ -296,10 +296,10 @@ async def add_friend(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     job_removed = remove_job_if_exists(str(chat_id), context)
     #set time in seconds
     due = 30
-    context.job_queue.run_once(send, due, chat_id=chat_id, name=str(chat_id), data = [friends, f"https://jodytng.github.io/{username}/"])
+    context.job_queue.run_once(send, due, chat_id=chat_id, name=str(chat_id), data = [friends, f"https://jodytng.github.io/#/f{username}/"])
 
     await update.message.reply_text("Thank you! Here's the link to your funeral. We will send this out to all your contacts after 7 days. /refresh regularly to delay your death!")
-    await update.message.reply_text(f"https://jodytng.github.io/{username}/")
+    await update.message.reply_text(f"https://jodytng.github.io/#/{username}/")
 
     return ConversationHandler.END
 
@@ -365,7 +365,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 def main() -> None:
     """Run the bot."""
     # Create the Application and pass it your bot's token.
-    application = Application.builder().token("5703636210:AAERRQrEGuweROVViAqHSqi7uL3E6oFBTeY").build()
+    application = Application.builder().token("5815995673:AAGChfC32EfvGhO1fMC1pfFhUL6DpIx4SW0").build()
 
     #create handlers for reset
     application.add_handler(CommandHandler("refresh", reset))
