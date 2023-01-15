@@ -79,7 +79,7 @@ class HomeScreen extends StatelessWidget {
             constraints: const BoxConstraints.expand(),
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("images/backgrounds/Untitled.png"),
+                image: AssetImage("images/backgrounds/Default.png"),
                 fit: BoxFit.cover,
               ),
             ),
@@ -135,7 +135,7 @@ class UserScreen extends StatelessWidget {
         constraints: const BoxConstraints.expand(),
         decoration: const BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("images/backgrounds/Untitled.png"),
+            image: AssetImage("images/backgrounds/Tropical.png"),
             fit: BoxFit.cover,
           ),
         ),
